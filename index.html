@@ -8,7 +8,7 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
   <!-- Geocoder CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@3.3.1/dist/Control.Geocoder.css" />
 
   <style>
     html, body { height: 100%; margin: 0; }
@@ -22,7 +22,7 @@
   <!-- Leaflet JS -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
   <!-- Geocoder JS -->
-  <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@3.3.1/dist/Control.Geocoder.js"></script>
 
   <script>
     // Wacht tot DOM klaar is
@@ -52,7 +52,8 @@
             collapsed: false,
             defaultMarkGeocode: false,
             geocoder: L.Control.Geocoder.nominatim({
-              geocodingQueryParams: { 'accept-language': 'nl' }
+              geocodingQueryParams: { 'accept-language': 'nl' },
+              reverseQueryParams: { 'accept-language': 'nl' }
             })
           }).on('markgeocode', (e) => {
             const center = e.geocode.center;
