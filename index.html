@@ -3,106 +3,98 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kaart met lagenkiezer (Leaflet)</title>
+  <title>Kaart met lagenkiezer (Leaflet) – stabiele versie</title>
 
-  <!-- Leaflet CSS (zonder SRI om eventuele SRI/CORS-issues te vermijden) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet CSS via jsDelivr (betrouwbare CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
 
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
-
-    /* Maak de lagenkiezer extra zichtbaar */
-    .leaflet-control-layers {
-      box-shadow: 0 8px 24px rgba(0,0,0,.15);
-      border-radius: 10px;
-      font: 15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    }
-    .leaflet-control-layers-expanded {
-      padding: 10px 12px;
-    }
-    .leaflet-control-layers-base label { display: block; margin-bottom: 6px; }
+    .leaflet-control-layers { box-shadow: 0 8px 24px rgba(0,0,0,.15); border-radius: 10px; }
+    .leaflet-control-layers-expanded { padding: 10px 12px; }
+    .fallback { position: absolute; inset: 0; display: none; place-items: center; font: 15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .fallback.show { display: grid; background: #111; color: #fff; }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div id="fallback" class="fallback">Er ging iets mis met laden. Probeer Ctrl+F5 / Cmd+Shift+R. Check de console voor fouten.</div>
 
-  <!-- Leaflet JS (zonder SRI) -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet JS via jsDelivr -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <!-- (Optionele fallback CDN) <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> -->
 
   <script>
-    // --- Basemaps zonder API key ---
-    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    });
+    (function init() {
+      try {
+        if (!window.L) throw new Error('Leaflet niet geladen');
 
-    const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
-    });
+        // --- Basemaps zonder API key ---
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        });
 
-    const esriStreet = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
-    });
+        const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+        });
 
-    const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
-    });
+        const esriStreet = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+        });
 
-    const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      maxZoom: 17,
-      attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors, <a href="https://opentopomap.org">OpenTopoMap</a>'
-    });
+        const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+        });
 
-    // Esri Dark Gray Canvas (donkere basis) + labels overlay (zonder API key)
-    const esriDarkGrayBase = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
-    });
+        const openTopoMap = L.tileLayer('
 
-    const esriDarkGrayLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-      attribution: 'Labels &copy; <a href="https://www.esri.com/">Esri</a>'
-    });
+        // Donkere opties
+        const esriDarkGrayBase = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Tiles &copy; Esri'
+        });
+        const esriDarkGrayLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Labels &copy; Esri'
+        });
 
-    // --- Kaart initialiseren met OSM als startlaag ---
-    const map = L.map('map', {
-      center: [52.37276, 4.89360],
-      zoom: 12,
-      layers: [osm]
-    });
+        // --- Kaart init met OSM als startlaag ---
+        const map = L.map('map', {
+          center: [52.37276, 4.89360],
+          zoom: 12,
+          layers: [osm]
+        });
 
-    // --- Lagenkiezer (altijd uitgeklapt) ---
-    const baseLayers = {
-      'OSM Standard': osm,
-      'Esri Satellite (Imagery)': esriImagery,
-      'Esri Street': esriStreet,
-      'Esri Topo': esriTopo,
-      'OpenTopoMap': openTopoMap,
-      'Esri Dark Gray (Base)': esriDarkGrayBase
-    };
+        // --- Lagenkiezer ---
+        const baseLayers = {
+          'OSM Standard': osm,
+          'Esri Street': esriStreet,
+          'Esri Topo': esriTopo,
+          'Esri Satellite (Imagery)': esriImagery,
+          'OpenTopoMap': openTopoMap,
+          'Esri Dark Gray (Base)': esriDarkGrayBase
+        };
+        const overlays = {
+          'Esri Dark Gray Labels': esriDarkGrayLabels
+        };
 
-    const overlays = {
-      'Esri Dark Gray Labels': esriDarkGrayLabels
-    };
+        L.control.layers(baseLayers, overlays, { collapsed: false, position: 'topleft' }).addTo(map);
+        L.control.scale({ imperial: false }).addTo(map);
 
-    L.control.layers(baseLayers, overlays, {
-      collapsed: false,      // NIET inklappen
-      position: 'topleft',
-      sortLayers: true,
-      autoZIndex: false
-    }).addTo(map);
+        // Testmarker
+        L.marker([52.37276, 4.89360]).addTo(map).bindPopup('Amsterdam');
 
-    L.control.scale({ imperial: false }).addTo(map);
-
-    // Voorbeeldmarker om te zien dat de kaart werkt
-    L.marker([52.37276, 4.89360]).addTo(map).bindPopup('Amsterdam').openPopup();
-
-    // Debug: laat in de console zien dat de lagenkiezer is geladen
-    console.log('Layer control geladen met baselayers:', Object.keys(baseLayers));
+        console.log('Layer control geladen met baselayers:', Object.keys(baseLayers));
+      } catch (e) {
+        console.error(e);
+        document.getElementById('fallback').classList.add('show');
+      }
+    })();
   </script>
 </body>
 </html>
