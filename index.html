@@ -116,10 +116,12 @@
         const geocoder = L.Control.geocoder({
           position: 'topright',
           placeholder: 'Zoek straat/adres…',
+          collapsed: false,
           defaultMarkGeocode: false,
           geocoder: L.Control.Geocoder.nominatim({
             geocodingQueryParams: { 'accept-language': 'nl' }
           })
+        })
         })
         .on('markgeocode', (e) => {
           const center = e.geocode.center;
