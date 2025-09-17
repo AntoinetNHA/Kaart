@@ -3,156 +3,73 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kaart met lagenkiezer (Leaflet) – stabiele versie</title>
+  <title>Leaflet – Minimale werkende kaart + zoeken</title>
 
-  <!-- Leaflet CSS via jsDelivr (betrouwbare CDN) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+  <!-- Geocoder CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
 
   <style>
     html, body { height: 100%; margin: 0; }
-    #map { height: 100%; width: 100%; }
-    .leaflet-control-layers { box-shadow: 0 8px 24px rgba(0,0,0,.15); border-radius: 10px; }
-    .leaflet-control-layers-expanded { padding: 10px 12px; }
-    .fallback { position: absolute; inset: 0; display: none; place-items: center; font: 15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    .fallback.show { display: grid; background: #111; color: #fff; }
+    #map { height: 100vh; width: 100%; }
   </style>
-  <!-- Leaflet Control Geocoder CSS (zoekveld) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 </head>
 <body>
+  <noscript>Deze pagina heeft JavaScript nodig om de kaart te tonen.</noscript>
   <div id="map"></div>
-  <div id="fallback" class="fallback">Er ging iets mis met laden. Probeer Ctrl+F5 / Cmd+Shift+R. Check de console voor fouten.</div>
 
-  <!-- Leaflet JS via jsDelivr -->
+  <!-- Leaflet JS -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-  <!-- Leaflet Control Geocoder JS -->
-  <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <!-- (Optionele fallback CDN) <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> -->
+  <!-- Geocoder JS -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
 
   <script>
-    (function init() {
+    // Wacht tot DOM klaar is
+    document.addEventListener('DOMContentLoaded', function () {
       try {
-        if (!window.L) throw new Error('Leaflet niet geladen');
+        // 1) Kaart
+        const map = L.map('map').setView([52.37276, 4.89360], 12);
 
-        // --- Basemaps zonder API key ---
+        // 2) Basemap (OSM)
         const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        });
+        }).addTo(map);
 
-        const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19,
-          attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
-        });
+        // 3) Voorbeeldmarker zodat je meteen iets ziet
+        L.marker([52.37276, 4.89360]).addTo(map).bindPopup('Amsterdam').openPopup();
 
-        const esriStreet = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19,
-          attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
-        });
-
-        const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19,
-          attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
-        });
-
-        const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-          maxZoom: 17,
-          attribution: 'Map data: &copy; OSM contributors, OpenTopoMap'
-        });
-
-        // --- (Optioneel) Mapbox Dark zoals geojson.io — vereist token ---
-        const MAPBOX_TOKEN = 'PASTE_YOUR_TOKEN'; // <-- vul je token in
-        let mapboxDark;
-        if (MAPBOX_TOKEN && MAPBOX_TOKEN !== 'PASTE_YOUR_TOKEN') {
-          mapboxDark = L.tileLayer(
-            'https://api.mapbox.com/styles/v1/{id}/tiles/{tileSize}/{z}/{x}/{y}{r}?access_token={accessToken}',
-            {
-              id: 'mapbox/dark-v11',
-              tileSize: 512,
-              zoomOffset: -1,
-              accessToken: MAPBOX_TOKEN,
-              attribution:
-                '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
-                '© <a href="https://www.mapbox.com/">Mapbox</a>'
-            }
-          );
-        }
-
-        // Donkere opties
-        const esriDarkGrayBase = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19,
-          attribution: 'Tiles &copy; Esri'
-        });
-        const esriDarkGrayLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19,
-          attribution: 'Labels &copy; Esri'
-        });
-
-        // --- Kaart init met OSM als startlaag ---
-        const map = L.map('map', {
-          center: [52.37276, 4.89360],
-          zoom: 12,
-          layers: [osm]
-        });
-
-        // --- Lagenkiezer ---
-        const baseLayers = {
-          'OSM Standard': osm,
-          'Esri Street': esriStreet,
-          'Esri Topo': esriTopo,
-          'Esri Satellite (Imagery)': esriImagery,
-          'OpenTopoMap': openTopoMap,
-          'Esri Dark Gray (Base)': esriDarkGrayBase,
-          ...(mapboxDark ? { 'Mapbox Dark (token vereist)': mapboxDark } : {})
-        };
-        const overlays = {
-          'Esri Dark Gray Labels': esriDarkGrayLabels
-        };
-
-        L.control.layers(baseLayers, overlays, { collapsed: false, position: 'topleft' }).addTo(map);
-
-        // --- Zoekbalk (Nominatim, geen API key nodig) ---
-        let searchMarker;
-        const geocoder = L.Control.geocoder({
-          position: 'topright',
-          placeholder: 'Zoek straat/adres…',
-          collapsed: false,
-          defaultMarkGeocode: false,
-          geocoder: L.Control.Geocoder.nominatim({
-            geocodingQueryParams: { 'accept-language': 'nl' }
-          })
-        })
-        })
-        .on('markgeocode', (e) => {
-          const center = e.geocode.center;
-          if (searchMarker) map.removeLayer(searchMarker);
-          searchMarker = L.marker(center).addTo(map).bindPopup(e.geocode.name).openPopup();
-          map.setView(center, 16);
-        })
-        .addTo(map);
-
-        // Bias zoekresultaten naar huidige kaartview
-        map.on('moveend', () => {
-          if (geocoder?.options?.geocoder?.options) {
-            geocoder.options.geocoder.options.bounds = map.getBounds();
-          }
-        });
-
-        // Als token is ingevuld, start op Mapbox Dark
-        if (mapboxDark) {
-          mapboxDark.addTo(map);
-        }
+        // 4) Schaalbalk
         L.control.scale({ imperial: false }).addTo(map);
 
-        // Testmarker
-        L.marker([52.37276, 4.89360]).addTo(map).bindPopup('Amsterdam');
+        // 5) Zoekveld (Nominatim) – altijd zichtbaar
+        if (L.Control.Geocoder) {
+          let searchMarker;
+          const geocoder = L.Control.geocoder({
+            position: 'topright',
+            placeholder: 'Zoek straat/adres…',
+            collapsed: false,
+            defaultMarkGeocode: false,
+            geocoder: L.Control.Geocoder.nominatim({
+              geocodingQueryParams: { 'accept-language': 'nl' }
+            })
+          }).on('markgeocode', (e) => {
+            const center = e.geocode.center;
+            if (searchMarker) map.removeLayer(searchMarker);
+            searchMarker = L.marker(center).addTo(map).bindPopup(e.geocode.name).openPopup();
+            map.setView(center, 16);
+          }).addTo(map);
+        } else {
+          console.warn('Geocoder plugin niet geladen');
+        }
 
-        console.log('Layer control geladen met baselayers:', Object.keys(baseLayers));
-      } catch (e) {
-        console.error(e);
-        document.getElementById('fallback').classList.add('show');
+        console.log('Leaflet geladen ✓');
+      } catch (err) {
+        console.error('Initfout:', err);
+        alert('Er ging iets mis bij het laden van de kaart. Bekijk de console voor details.');
       }
-    })();
+    });
   </script>
 </body>
 </html>
