@@ -16,6 +16,8 @@
     .fallback { position: absolute; inset: 0; display: none; place-items: center; font: 15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     .fallback.show { display: grid; background: #111; color: #fff; }
   </style>
+  <!-- Leaflet Control Geocoder CSS (zoekveld) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 </head>
 <body>
   <div id="map"></div>
@@ -23,6 +25,8 @@
 
   <!-- Leaflet JS via jsDelivr -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <!-- Leaflet Control Geocoder JS -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
   <!-- (Optionele fallback CDN) <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> -->
 
   <script>
@@ -51,7 +55,28 @@
           attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
         });
 
-        const openTopoMap = L.tileLayer('
+        const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+          maxZoom: 17,
+          attribution: 'Map data: &copy; OSM contributors, OpenTopoMap'
+        });
+
+        // --- (Optioneel) Mapbox Dark zoals geojson.io — vereist token ---
+        const MAPBOX_TOKEN = 'PASTE_YOUR_TOKEN'; // <-- vul je token in
+        let mapboxDark;
+        if (MAPBOX_TOKEN && MAPBOX_TOKEN !== 'PASTE_YOUR_TOKEN') {
+          mapboxDark = L.tileLayer(
+            'https://api.mapbox.com/styles/v1/{id}/tiles/{tileSize}/{z}/{x}/{y}{r}?access_token={accessToken}',
+            {
+              id: 'mapbox/dark-v11',
+              tileSize: 512,
+              zoomOffset: -1,
+              accessToken: MAPBOX_TOKEN,
+              attribution:
+                '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
+                '© <a href="https://www.mapbox.com/">Mapbox</a>'
+            }
+          );
+        }
 
         // Donkere opties
         const esriDarkGrayBase = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
@@ -77,13 +102,44 @@
           'Esri Topo': esriTopo,
           'Esri Satellite (Imagery)': esriImagery,
           'OpenTopoMap': openTopoMap,
-          'Esri Dark Gray (Base)': esriDarkGrayBase
+          'Esri Dark Gray (Base)': esriDarkGrayBase,
+          ...(mapboxDark ? { 'Mapbox Dark (token vereist)': mapboxDark } : {})
         };
         const overlays = {
           'Esri Dark Gray Labels': esriDarkGrayLabels
         };
 
         L.control.layers(baseLayers, overlays, { collapsed: false, position: 'topleft' }).addTo(map);
+
+        // --- Zoekbalk (Nominatim, geen API key nodig) ---
+        let searchMarker;
+        const geocoder = L.Control.geocoder({
+          position: 'topright',
+          placeholder: 'Zoek straat/adres…',
+          defaultMarkGeocode: false,
+          geocoder: L.Control.Geocoder.nominatim({
+            geocodingQueryParams: { 'accept-language': 'nl' }
+          })
+        })
+        .on('markgeocode', (e) => {
+          const center = e.geocode.center;
+          if (searchMarker) map.removeLayer(searchMarker);
+          searchMarker = L.marker(center).addTo(map).bindPopup(e.geocode.name).openPopup();
+          map.setView(center, 16);
+        })
+        .addTo(map);
+
+        // Bias zoekresultaten naar huidige kaartview
+        map.on('moveend', () => {
+          if (geocoder?.options?.geocoder?.options) {
+            geocoder.options.geocoder.options.bounds = map.getBounds();
+          }
+        });
+
+        // Als token is ingevuld, start op Mapbox Dark
+        if (mapboxDark) {
+          mapboxDark.addTo(map);
+        }
         L.control.scale({ imperial: false }).addTo(map);
 
         // Testmarker
