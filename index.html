@@ -57,6 +57,17 @@
       attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors, <a href="https://opentopomap.org">OpenTopoMap</a>'
     });
 
+    // Esri Dark Gray Canvas (donkere basis) + labels overlay (zonder API key)
+    const esriDarkGrayBase = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+    });
+
+    const esriDarkGrayLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Labels &copy; <a href="https://www.esri.com/">Esri</a>'
+    });
+
     // --- Kaart initialiseren met OSM als startlaag ---
     const map = L.map('map', {
       center: [52.37276, 4.89360],
@@ -66,3 +77,32 @@
 
     // --- Lagenkiezer (altijd uitgeklapt) ---
     const baseLayers = {
+      'OSM Standard': osm,
+      'Esri Satellite (Imagery)': esriImagery,
+      'Esri Street': esriStreet,
+      'Esri Topo': esriTopo,
+      'OpenTopoMap': openTopoMap,
+      'Esri Dark Gray (Base)': esriDarkGrayBase
+    };
+
+    const overlays = {
+      'Esri Dark Gray Labels': esriDarkGrayLabels
+    };
+
+    L.control.layers(baseLayers, overlays, {
+      collapsed: false,      // NIET inklappen
+      position: 'topleft',
+      sortLayers: true,
+      autoZIndex: false
+    }).addTo(map);
+
+    L.control.scale({ imperial: false }).addTo(map);
+
+    // Voorbeeldmarker om te zien dat de kaart werkt
+    L.marker([52.37276, 4.89360]).addTo(map).bindPopup('Amsterdam').openPopup();
+
+    // Debug: laat in de console zien dat de lagenkiezer is geladen
+    console.log('Layer control geladen met baselayers:', Object.keys(baseLayers));
+  </script>
+</body>
+</html>
