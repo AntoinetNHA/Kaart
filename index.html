@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mijn Kaart • Leaflet op GitHub Pages</title>
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    /* Reset body margins and make the map fill the viewport */
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; width: 100%; }
+
+    /* Simple top-right info card */
+    .map-card {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: saturate(120%) blur(2px);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      padding: 0.75rem 1rem;
+      font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      z-index: 500;
+      max-width: 300px;
+    }
+    .map-card h1 { font-size: 16px; margin: 0 0 0.25rem; }
+    .map-card p { margin: 0; }
+
+    /* Make popups slightly nicer on mobile */
+    .leaflet-popup-content { font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+
+    /* Optional: dark-mode card */
+    @media (prefers-color-scheme: dark) {
+      .map-card { background: rgba(20,20,20,0.92); color: #f2f2f2; }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="map-card">
+    <h1>Leaflet + OpenStreetMap</h1>
+    <p>
+      Demo op GitHub Pages. Pas de coördinaten/markers aan in <code>index.html</code>.
+    </p>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    // 1) Init kaart en centreer op Amsterdam (lat, lon) met zoom 13
+    const map = L.map('map', {
+      scrollWheelZoom: true,
+      zoomControl: true
+    }).setView([52.3727598, 4.8936041], 13);
+
+    // 2) OpenStreetMap tegel-laag
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // 3) Voorbeeld: marker + popup
+    const marker = L.marker([52.3727598, 4.8936041]).addTo(map);
+    marker.bindPopup('<b>Amsterdam</b><br>Damrak / Centraal gebied').openPopup();
+
+    // 4) Voorbeeld: een klein GeoJSON-laagje (punten)
+    const places = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {"naam": "Vondelpark", "type": "park"},
+          "geometry": {"type": "Point", "coordinates": [4.868647, 52.357997]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"naam": "NEMO Science Museum", "type": "museum"},
+          "geometry": {"type": "Point", "coordinates": [4.912488, 52.37403]}
+        }
+      ]
+    };
+
+    L.geoJSON(places, {
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 7,
+        fillOpacity: 0.9,
+        weight: 1
+      }),
+      onEachFeature: (feature, layer) => {
+        layer.bindPopup(`<b>${feature.properties.naam}</b><br>Type: ${feature.properties.type}`);
+      }
+    }).addTo(map);
+
+    // 5) Fit naar alle objecten (marker + geojson)
+    const group = L.featureGroup([marker]);
+    group.addTo(map);
+    // Voeg ook bounding box van GeoJSON toe
+    try {
+      const gj = L.geoJSON(places);
+      group.addLayer(gj);
+      map.fitBounds(group.getBounds().pad(0.15));
+      map.removeLayer(gj); // we hebben alleen de bounds nodig, echte laag staat al boven
+    } catch (e) {
+      console.warn('Kon bounds niet berekenen:', e);
+    }
+
+    // 6) Snelle helper: klik om coördinaten te kopiëren
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      const text = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      navigator.clipboard?.writeText(text);
+      L.popup().setLatLng(e.latlng).setContent(`Coördinaten gekopieerd:<br><code>${text}</code>`).openOn(map);
+    });
+  </script>
+</body>
+</html>
